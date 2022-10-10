@@ -885,3 +885,67 @@ class NewsCategorizationDataLoader(DataLoader):
             seq_list.append(raw_seq)
             
         return subword_batch, mask_batch, labels_batch, seq_list
+    
+    class DocumentCSVDataset(Dataset):
+    # Static constant variable
+    LABEL2INDEX = {'not_hoax': 0, 'hoax': 1}
+    INDEX2LABEL = {0: 'not_hoax', 1: 'hoax'}
+    NUM_LABELS = 2
+
+    def load_dataset(self, path):
+        df = pd.read_csv(path)
+        df.columns = ['narasi', 'label']
+        return df
+
+    def label_generator(self, label_dict={'not_hoax': 0, 'hoax': 1}):
+        self.LABEL2INDEX = label_dict
+        self.INDEX2LABEL = {y: x for x, y in label_dict.items()}
+        self.NUM_LABELS = len(label_dict)
+
+    def __init__(self, dataset_path, tokenizer, no_special_token=False, *args, **kwargs):
+        self.label_generator()
+        self.data = self.load_dataset(dataset_path)
+        self.tokenizer = tokenizer
+        self.no_special_token = no_special_token
+
+    def __getitem__(self, index):
+        data = self.data.loc[index, :]
+        text, sentiment = data['narasi'], data['label']
+        subwords = self.tokenizer.encode(
+            text, add_special_tokens=not self.no_special_token)
+        return np.array(subwords), np.array(sentiment), data['narasi']
+
+    def __len__(self):
+        return len(self.data)
+    
+    class expressionSentenceDataset(Dataset):
+    # Static constant variable
+    LABEL2INDEX = {'Keluhan': 0, 'Pujian': 1, 'Saran': 2, 'Netral': 3}
+    INDEX2LABEL = {0: 'Keluhan', 1: 'Pujian', 2: 'Saran', 3: 'Netral'}
+    NUM_LABELS = 4
+
+    def load_dataset(self, path):
+        df = pd.read_csv(path)
+        df.columns = ['review_text', 'category']
+        return df
+
+    def label_generator(self, label_dict={'Keluhan': 0, 'Pujian': 1, 'Saran': 2, 'Netral': 3}):
+        self.LABEL2INDEX = label_dict
+        self.INDEX2LABEL = {y: x for x, y in label_dict.items()}
+        self.NUM_LABELS = len(label_dict)
+
+    def __init__(self, dataset_path, tokenizer, no_special_token=False, *args, **kwargs):
+        self.label_generator()
+        self.data = self.load_dataset(dataset_path)
+        self.tokenizer = tokenizer
+        self.no_special_token = no_special_token
+
+    def __getitem__(self, index):
+        data = self.data.loc[index, :]
+        text, sentiment = data['review_text'], data['category']
+        subwords = self.tokenizer.encode(
+            text, add_special_tokens=not self.no_special_token)
+        return np.array(subwords), np.array(sentiment), data['review_text']
+
+    def __len__(self):
+        return len(self.data)
