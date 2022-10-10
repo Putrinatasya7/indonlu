@@ -918,24 +918,21 @@ class NewsCategorizationDataLoader(DataLoader):
     def __len__(self):
         return len(self.data)
     
-    class expressionSentenceDataset(Dataset):
+    
+class ExpressionSentimentDataset(Dataset):
     # Static constant variable
     LABEL2INDEX = {'Keluhan': 0, 'Pujian': 1, 'Saran': 2, 'Netral': 3}
     INDEX2LABEL = {0: 'Keluhan', 1: 'Pujian', 2: 'Saran', 3: 'Netral'}
     NUM_LABELS = 4
 
     def load_dataset(self, path):
-        df = pd.read_csv(path)
+        df = pd.read_csv(path, sep='\t', header=None)
         df.columns = ['review_text', 'category']
+        df['category'] = df['category'].apply(
+            lambda lab: self.LABEL2INDEX[lab])
         return df
 
-    def label_generator(self, label_dict={'Keluhan': 0, 'Pujian': 1, 'Saran': 2, 'Netral': 3}):
-        self.LABEL2INDEX = label_dict
-        self.INDEX2LABEL = {y: x for x, y in label_dict.items()}
-        self.NUM_LABELS = len(label_dict)
-
     def __init__(self, dataset_path, tokenizer, no_special_token=False, *args, **kwargs):
-        self.label_generator()
         self.data = self.load_dataset(dataset_path)
         self.tokenizer = tokenizer
         self.no_special_token = no_special_token
@@ -949,3 +946,30 @@ class NewsCategorizationDataLoader(DataLoader):
 
     def __len__(self):
         return len(self.data)
+
+
+class ExpressionSentimentDatasetDataLoader(DataLoader):
+    def __init__(self, max_seq_len=512, *args, **kwargs):
+        super(DocumentSentimentDataLoader, self).__init__(*args, **kwargs)
+        self.collate_fn = self._collate_fn
+        self.max_seq_len = max_seq_len
+
+    def _collate_fn(self, batch):
+        batch_size = len(batch)
+        max_seq_len = max(map(lambda x: len(x[0]), batch))
+        max_seq_len = min(self.max_seq_len, max_seq_len)
+
+        subword_batch = np.zeros((batch_size, max_seq_len), dtype=np.int64)
+        mask_batch = np.zeros((batch_size, max_seq_len), dtype=np.float32)
+        sentiment_batch = np.zeros((batch_size, 1), dtype=np.int64)
+
+        seq_list = []
+        for i, (subwords, sentiment, raw_seq) in enumerate(batch):
+            subwords = subwords[:max_seq_len]
+            subword_batch[i, :len(subwords)] = subwords
+            mask_batch[i, :len(subwords)] = 1
+            sentiment_batch[i, 0] = sentiment
+
+            seq_list.append(raw_seq)
+
+        return subword_batch, mask_batch, sentiment_batch, seq_list
