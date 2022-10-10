@@ -917,9 +917,9 @@ class ExpressionSentimentDataset(Dataset):
         return len(self.data)
 
 
-class ExpressionSentimentDatasetDataLoader(DataLoader):
+class ExpressionSentimentDataLoader(DataLoader):
     def __init__(self, max_seq_len=512, *args, **kwargs):
-        super(DocumentSentimentDataLoader, self).__init__(*args, **kwargs)
+        super(ExpressionSentimentDataLoader, self).__init__(*args, **kwargs)
         self.collate_fn = self._collate_fn
         self.max_seq_len = max_seq_len
 
